@@ -15,7 +15,7 @@ const createToken = (id, role) => {
   });
 };
 
-const signUp = async(req, res) => {
+const signUp = async (req, res) => {
   // const errors = validationResult(req);
   // verifyRecaptcha(req.body.reCaptchaToken, req.headers['x-forwarded-for'] || req.socket.remoteAddress, async () => {
   // if (!errors.isEmpty()) {
@@ -42,7 +42,7 @@ const signUp = async(req, res) => {
   const refferalCode = req.body.referral;
   const eArr = req.body.email.split("@");
   const domain = eArr[1];
-  const userId = `#TF24-${crypto.randomBytes(3).toString("hex")}`;
+  const userId = Date.now() + `-${crypto.randomBytes(3).toString("hex")}`;
   const password = req.body.password;
   const referralCode = `#TF24-` + crypto.randomBytes(3).toString("hex");
 
@@ -59,6 +59,7 @@ const signUp = async(req, res) => {
           userId: userId,
           regNo: eArr[0],
           institution: "sliet",
+          profession: req.body.profession,
           referralCode: referralCode,
           role: 2,
           phone: req.body.phone,
@@ -73,6 +74,7 @@ const signUp = async(req, res) => {
         collegeName: req.body.collegeName,
         password: encryptedPassword,
         institution: "other",
+        profession: req.body.profession,
         referralCode: referralCode,
         role: 1,
         phone: req.body.phone,
@@ -1432,7 +1434,7 @@ const signUp = async(req, res) => {
         message: "Redirecting to gmail in 3s...",
       });
     }
-  })
+  });
 };
 
 const signIn = (req, res) => {
@@ -2885,8 +2887,10 @@ const forgotPassword = (req, res) => {
           id: user._id,
         };
         let token = jwt.sign(payLoad, secret, { expiresIn: "2d" });
-        const uri = `https://www.techfestsliet.org/api/auth/reset-password/${user._id}/${token.replace(/\./g, "-")}`;
-        transporter.sendMail(
+        const uri = `http://localhost:4030/auth/reset-password/${
+          user._id
+        }/${token.replace(/\./g, "-")}`;
+        transporter.sendMail( 
           {
             from: "techfest@sliet.ac.in",
             to: req.body.email,
@@ -3023,7 +3027,7 @@ const forgotPassword = (req, res) => {
                                                                                   valign="top"
                                                                                 >
                                                                                   <a
-                                                                                    href="https://www.techfestsliet.com/"
+                                                                                    href="https://www.techfestsliet.org/"
                                                                                     style="
                                                                                       text-decoration: none;
                                                                                     "
@@ -3594,7 +3598,7 @@ const forgotPassword = (req, res) => {
           <a href=${uri} style="text-decoration: none;color:black;font-size: 20px;"><button
             style="
                     border-radius: 15px;
-        background-color: #045b04;
+        background-color: #199292;
         width: 112px;
         cursor: pointer;
         margin-left: 17px;
@@ -4165,7 +4169,7 @@ const forgotPassword = (req, res) => {
 
 const resetPassword = async (req, res) => {
   let { id, token } = req.params;
-  token = token.replace(/\-/g, '.');
+  token = token.replace(/\-/g, ".");
   User.findOne({ _id: id }, (err, user) => {
     if (err || !user) {
       return res.status(208).json({
@@ -4176,7 +4180,7 @@ const resetPassword = async (req, res) => {
       const secret = process.env.SECRET + user.password;
       try {
         const payLoad = jwt.verify(token, secret);
-        if(payLoad) {
+        if (payLoad) {
           return res.render("resetPassword", { email: user.email });
         } else {
           return res.status(208).json({
@@ -4188,9 +4192,7 @@ const resetPassword = async (req, res) => {
         console.log(error);
         res.render("response", {
           title: "Expired!",
-          message:
-            "Token has expired at " +
-            error.expiredAt,
+          message: "Token has expired at " + error.expiredAt,
         });
       }
     }

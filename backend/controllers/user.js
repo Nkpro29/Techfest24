@@ -3,14 +3,16 @@ import Event from "../models/events.js";
 import Team from "../models/teams.js";
 import { validationResult } from "express-validator";
 import Workshop from "../models/workshop.js";
+import mongoose from "mongoose";
 
 const getUserById = (req, res) => {
-  const _id = req.userId;
-  User.findOne({ _id: _id })
+  // const _id = req.userId;
+  const { userid } = req.params;
+  User.findOne({ userId: userid })
     // .populate("events", ["name", "endDate"])
     .populate("workshops")
     .populate("teamMembers")
-    .populate('events')
+    .populate("events")
     .exec((err, user) => {
       if (err || !user) {
         return res.status(208).json({ isError: true, user: "Not auth" });
@@ -22,21 +24,19 @@ const getUserById = (req, res) => {
     });
 };
 
-const getLeaderById = async(req, res) => {
+const getLeaderById = async (req, res) => {
   const id = req.params.leaderid;
-  console.log('aaya')
-  User.findOne({ _id: id })
-    .exec((err, user) => {
-      if (err || !user) {
-        return res.status(208).json({ isError: true, user: "Not found" });
-      }
-      user.password = null;
-      return res
-        .status(200)
-        .send({ isError: false, isSuccess: true, user: user });
+  console.log("aaya");
+  User.findOne({ _id: id }).exec((err, user) => {
+    if (err || !user) {
+      return res.status(208).json({ isError: true, user: "Not found" });
     }
-)}
-
+    user.password = null;
+    return res
+      .status(200)
+      .send({ isError: false, isSuccess: true, user: user });
+  });
+};
 
 const userCount = (req, res) => {
   User.countDocuments({}, (err, count) => {
@@ -75,32 +75,34 @@ const getUser = async (req, res) => {
 const updateUser = async (req, res) => {
   // const user_email = req.body.email;
   // console.log("ema",user_email);
+  console.log(req.body);
   const user = await User.findOne({ email: req.body.email });
   if (!user) {
     return res.status(208).json({ isError: true, message: "User not found" });
   } else {
-    const updatedUser = {
-      // ...user,
-      name: req.body.name,
-      whatsappPhoneNumber: req.body.whatsappPhoneNumber,
-      //  dob:req.body.dob,
-      phone: req.body.phone,
+    const updateObject = {
       collegeName: req.body.collegeName,
       branch: req.body.branch,
-    };
-    User.updateOne({ email: req.body.email }, updatedUser)
-      .then(() => {
-        // const upuser = await User.findOne({email:req.body.email});
-        // console.log()
-        res.status(201).json({
-          message: "user updated successfully!",
-        });
+      phone: req.body.phone,
+    }
+
+    User.findOneAndUpdate({email: req.body.email},
+      {$set: updateObject}, 
+      {new: true}
+    )
+    .then((res) => {
+      console.log(res);
+      res.status(201).json({
+        message: "done"
       })
-      .catch((error) => {
-        res.status(400).json({
-          error: error,
-        });
-      });
+    })
+    .catch(err => {
+      console.log(err);
+    })
+
+    res.status(201).json({
+      message: "done"
+    })
   }
 };
 
@@ -109,57 +111,62 @@ const addEvent = async (req, res) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-  const { eventId, type } = req.body;
-  const userId = req.userId;
-  const user = await User.findById(userId);
-  const event = await Event.findById(eventId);
-  const userEventRegistered = user.events.map((e) => {
-    return e.toString();
-  });
 
-  if (userEventRegistered.includes(eventId)) {
-    return res.status(208).send({
-      title: "Already Registered",
-      message: "Event already registered",
-    });
-  }
-  if (type === "Individual") {
-    if (user.role == 2 || (user.role == 1 && user.payment.paymentStatus)) {
-      //slietian
-      User.findByIdAndUpdate(user._id, { $push: { events: event } }).exec();
-      Event.findByIdAndUpdate(eventId, {
-        $push: { individual: user },
-      }).exec();
-    } else {
-      return res.status(208).send({
-        title: "Pay registration fee",
-        message: "Your payment has not been done yet.",
-      });
-    }
-  } else {
-    const team = await Team.findById(type);
-    const teamEventRegistered = team.events.map((e) => {
-      return e.toString();
-    });
-    if (teamEventRegistered.includes(eventId)) {
-      return res.status(208).send({
-        title: "Already Registered",
-        message: "Event already registered",
-      });
-    }
-    for(const member of team.members) {
-      const m = await User.findByIdAndUpdate(member.memberId, { $push: { events: event } }).exec();
-    }
-    User.findByIdAndUpdate(user._id, { $push: { events: event } }).exec();
-    Event.findByIdAndUpdate(eventId, {
-      $push: { teams: team },
-    }).exec();
-    Team.findByIdAndUpdate(type, { $push: { events: event } }).exec();
-  }
-  res.status(200).send({
-    title: "Registered",
-    message: "Check dashboard for whatsapp link of the event registered.",
-  });
+  const { eventId } = req.params;
+  // const eventIdObj = mongoose.Types.ObjectId(eventId);
+  const userId = req.userId;
+  console.log(userId);
+  console.log(eventId);
+  const user = await User.findById(userId);
+  // const event = await Event.findById(eventId);
+  // console.log(event);
+  // const userEventRegistered = user.events.map((e) => {
+  //   return e.toString();
+  // });
+
+  // if (userEventRegistered.includes(eventId)) {
+  //   return res.status(208).send({
+  //     title: "Already Registered",
+  //     message: "Event already registered",
+  //   });
+  // }
+  // if (type === "Individual") {
+  //   if (user.role == 2 || (user.role == 1 && user.payment.paymentStatus)) {
+  //     //slietian
+  //     User.findByIdAndUpdate(user._id, { $push: { events: event } }).exec();
+  //     Event.findByIdAndUpdate(eventId, {
+  //       $push: { individual: user },
+  //     }).exec();
+  //   } else {
+  //     return res.status(208).send({
+  //       title: "Pay registration fee",
+  //       message: "Your payment has not been done yet.",
+  //     });
+  //   }
+  // } else {
+  //   const team = await Team.findById(type);
+  //   const teamEventRegistered = team.events.map((e) => {
+  //     return e.toString();
+  //   });
+  //   if (teamEventRegistered.includes(eventId)) {
+  //     return res.status(208).send({
+  //       title: "Already Registered",
+  //       message: "Event already registered",
+  //     });
+  //   }
+  //   for(const member of team.members) {
+  //     const m = await User.findByIdAndUpdate(member.memberId, { $push: { events: event } }).exec();
+  //   }
+  //   User.findByIdAndUpdate(user._id, { $push: { events: event } }).exec();
+  //   Event.findByIdAndUpdate(eventId, {
+  //     $push: { teams: team },
+  //   }).exec();
+  //   Team.findByIdAndUpdate(type, { $push: { events: event } }).exec();
+  // }
+  // res.status(200).send({
+  //   title: "Registered",
+  //   message: "Check dashboard for whatsapp link of the event registered.",
+  // });
 };
 
 const getUserByObjId = async (req, res) => {
@@ -294,44 +301,44 @@ const registerworkshop = async (req, res) => {
 };
 
 const getpaiduser = async (req, res) => {
-  const users =  await User.find();
+  const users = await User.find();
   const nonslietians = [];
   const paidUsers = [];
   const nonslietian = users.map((user) => {
-    if(user.role === 1){
+    if (user.role === 1) {
       nonslietians.push(user);
     }
   });
   const user = nonslietians.map((nonslietian) => {
-    if(nonslietian.payment.paymentId) {
+    if (nonslietian.payment.paymentId) {
       paidUsers.push(nonslietian);
     }
-  })
+  });
   return res.status(200).json({
     isError: false,
     paidUsers: paidUsers,
-  })
-}
+  });
+};
 
-const pullEvent = async(req, res) => {
+const pullEvent = async (req, res) => {
   const user = req.userId;
-  const eventId = req.body.id;
+  const eventId = req.params.id;
   await User.findByIdAndUpdate(user, { $pull: { events: eventId } }).exec();
   Event.findByIdAndUpdate(eventId, {
     $pull: { individual: user },
   }).exec((err) => {
-    if(err) {
+    if (err) {
       return res.status(400).json({
         isError: true,
         message: "Error removing event",
       });
     }
-  })
+  });   
   return res.status(200).json({
     isError: false,
-    message: "Event removed",
+    // message: "Event removed",
   });
-}
+};
 
 export {
   addEvent,

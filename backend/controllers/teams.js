@@ -9,7 +9,7 @@ import { validate } from "../utils/parse.js";
 
 function isEmpty(req) {
   return (
-    req === {} || req === undefined || req === "" || req == [] || req == null
+    req === undefined || req === "" || req == [] || req == null
   );
 }
 

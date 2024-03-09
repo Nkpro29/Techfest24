@@ -69,7 +69,7 @@ export function getAllEvents(req, res) {
 export function getByDomain(req, res) {
   const form = new multiparty.Form();
   form.parse(req, (err, fields) => {
-    let missingFields = [];
+    let missingFields = [];     
     const requiredFields = ["domainId"];
     requiredFields.forEach((val) => {
       if (!fields.hasOwnProperty(val)) missingFields += val;

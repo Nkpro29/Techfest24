@@ -4,8 +4,7 @@ import saveImg from "../utils/image.js";
 import deleteFiles from "../utils/file.js";
 
 function isEmpty(req) {
-  return req === {} || req === undefined || req === "" || req == [] ||
-    req == null;
+  return req === undefined || req === "" || req == [] || req == null;
 }
 
 const UPLOAD_PATH = "uploads/images/domain/";
